@@ -1,8 +1,9 @@
 # Web de resultados (maqueta local)
 
 `build_web.py` lee el grafo (solo lectura) y genera una web estática en `dist/`:
-portada con el NPS nacional (cuatro vías y solo explícitas), página por partido,
-página de evidencia por cadena × partido × mes, metodología, `datos/nps.csv|json`,
+portada con (1) tiempo de política por cadena, (2) reparto del tiempo de mención por partido y
+(3) NPS de cada partido cadena a cadena con desplegable; página por partido,
+página de evidencia por cadena × partido × mes, metodología, `datos/{politica,exposicion,nps}.csv|json`,
 `llms.txt`, `sitemap.xml` y `robots.txt`.
 
 ## Verla en el NAS
