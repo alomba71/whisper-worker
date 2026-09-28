@@ -755,6 +755,17 @@ cada uno tiene su propia agenda (gobernar, estar en la oposición, tener casos a
         body = f"""<h1>Cómo se mide</h1>
 <p class="lede">Tres medidas, de lo general a lo particular: cuánto se habla de política, de qué partidos, y con qué tono
 trata cada cadena a cada partido.</p>
+<div class="card" id="premisa"><h3>La premisa: una misma realidad, distintas decisiones editoriales</h3>
+<p>Todos los informativos cubren el mismo país en los mismos días. Los hechos de partida (lo que pasa en el Gobierno,
+en los parlamentos, en los tribunales o en la calle) son los mismos para todos.</p>
+<p>A partir de ahí, cada redacción decide: qué noticias abre y cuáles descarta, cuánto tiempo les dedica, de qué partidos
+habla y en qué sentido los presenta. Esas decisiones son editoriales y legítimas, y son precisamente lo que medimos.</p>
+<p>Como la realidad es común, las diferencias entre cadenas sobre un mismo partido no se deben a los hechos, sino a cómo
+cada una los selecciona y los cuenta. El indicador mide ese sesgo relativo: <strong>cuánto se aparta cada cadena de las
+demás al tratar a un mismo partido</strong>.</p>
+<p><strong>Lo que el indicador no dice</strong> es qué cadena refleja mejor la realidad. No hay una referencia neutra
+con la que comparar: un NPS negativo no significa que una cadena mienta, ni uno cercano a cero que sea más objetiva.
+Solo muestra cómo interpreta cada una, en relación con las demás, una misma realidad.</p></div>
 <div class="card"><h3>1. Tiempo de política</h3><p>Cada telediario se corta en noticias. Una noticia es política si habla
 de al menos un partido (nombrándolo o a través de sus cargos, gobiernos o casos). La cifra es el tiempo de esas noticias
 sobre la duración total del boletín.</p></div>
@@ -845,6 +856,9 @@ Periodo: {self.periodo}. Generado: {self.generado}.
 
 ## NPS ponderado de cada partido, por cadena (-100 a +100)
 Importante: el NPS compara cadenas para un mismo partido. No debe usarse para comparar partidos entre sí.
+Premisa: la realidad de partida es la misma para todos los informativos; las diferencias entre cadenas reflejan sus
+decisiones editoriales (qué cuentan y cómo). El indicador mide ese sesgo relativo entre cadenas; no dice cuál refleja
+mejor la realidad.
 {chr(10).join(nps)}
 
 ## Páginas
