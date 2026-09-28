@@ -56,6 +56,9 @@ MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto
 # (paleta validada para daltonismo en orden fijo; el resto se pliega en "Otros").
 CATEG = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"]
 N_REPARTO = 5
+# Un color fijo por cadena en el gráfico de evolución (nunca cambia al filtrar).
+COLOR_CADENA = {"RTVE": "var(--c1)", "Antena3": "var(--c2)", "laSexta": "var(--c3)",
+                "Telemadrid": "var(--c4)", "Malas Lenguas": "var(--c5)", "Todo es mentira": "var(--c6)"}
 
 SITE_URL = os.environ.get("SITE_URL", "https://example.org")  # cambiar al dominio real
 
@@ -283,15 +286,15 @@ class Datos:
 CSS = """
 :root{--bg:#fcfcfb;--surface:#ffffff;--ink:#0b0b0b;--ink2:#52514e;--ink3:#7a7974;--line:#e6e5e0;
 --pos:#2a78d6;--neg:#e34948;--accent:#2a78d6;--bar:#2a78d6;--otros:#b9b8b2;--warn-bg:#fff4d6;--warn-ink:#6b4e00;
---c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;
+--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;
 --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121211;--surface:#1a1a19;
 --ink:#fff;--ink2:#c3c2b7;--ink3:#8f8e86;--line:#2e2e2b;--pos:#3987e5;--neg:#e66767;--accent:#6da7ec;
 --bar:#3987e5;--otros:#5c5b56;--warn-bg:#3a2f0f;--warn-ink:#f3d58a;
---c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181}}
+--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300}}
 :root[data-theme="dark"]{--bg:#121211;--surface:#1a1a19;--ink:#fff;--ink2:#c3c2b7;--ink3:#8f8e86;
 --line:#2e2e2b;--pos:#3987e5;--neg:#e66767;--accent:#6da7ec;--bar:#3987e5;--otros:#5c5b56;
---warn-bg:#3a2f0f;--warn-ink:#f3d58a;--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181}
+--warn-bg:#3a2f0f;--warn-ink:#f3d58a;--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 a{color:var(--accent)}
@@ -348,6 +351,10 @@ footer{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;color:var
 .picker select{font:inherit;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:220px}
 .nps-block{display:none}.nps-block.on{display:block}
 details summary{cursor:pointer;color:var(--accent);font-size:14px;margin-top:8px}
+.ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ln.dash{stroke-dasharray:6 4}
+.pt{stroke:var(--surface);stroke-width:2}
+a:hover .pt{r:7}
 .note{border-left:3px solid var(--line);padding:4px 0 4px 12px;color:var(--ink2);font-size:14px;max-width:760px}
 """
 
@@ -515,32 +522,6 @@ no entre partidos. Celdas con menos de {MIN_PAREJAS} parejas, vacías.
         g.append(f'<line class="axis" x1="{x0}" x2="{x0}" y1="0" y2="{H - 22}"/></svg>')
         return "".join(g)
 
-    def serie_mensual(self, cadena, partido, mx):
-        vals = [(m, self.d.nps(cadena, partido, m)) for m in self.meses]
-        if all(v is None for _, v in vals):
-            return '<p class="muted">Ningún mes llega al mínimo de parejas.</p>'
-        mx = (int(mx / 10) + 1) * 10
-        W, H, T, B, L = 1000, 190, 10, 26, 40
-        ph = H - T - B
-        bw = (W - L) / len(vals)
-        y0 = T + ph / 2
-        sy = lambda v: y0 - v / mx * ph / 2
-        g = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="NPS mensual de {E(partido)} en {E(cadena)}">']
-        for t in (-mx, 0, mx):
-            g.append(f'<line class="grid" x1="{L}" x2="{W}" y1="{sy(t):.1f}" y2="{sy(t):.1f}"/>'
-                     f'<text x="{L - 6}" y="{sy(t) + 4:.1f}" text-anchor="end">{t:+.0f}</text>')
-        for i, (m, v) in enumerate(vals):
-            x = L + i * bw
-            g.append(f'<text x="{x + bw / 2:.1f}" y="{H - 8}" text-anchor="middle">{mes_corto(m)}</text>')
-            if v is None:
-                continue
-            y1, y2 = sorted((y0, sy(v)))
-            cls = "bar-pos" if v >= 0 else "bar-neg"
-            g.append(f'<g class="bar"><title>{mes_largo(m)}: {fmt(v)} ({self.d.n(cadena, partido, m)} parejas)</title>'
-                     f'<rect class="{cls}" x="{x + bw * .2:.1f}" y="{y1:.1f}" width="{bw * .6:.1f}" height="{max(y2 - y1, 1):.1f}" rx="3"/></g>')
-        g.append(f'<line class="axis" x1="{L}" x2="{W}" y1="{y0}" y2="{y0}"/></svg>')
-        return "".join(g)
-
     def escala_partido(self, p):
         vals = [self.d.nps(c, p, m) for c in CADENAS for m in self.meses + ["total"]]
         return max([10] + [abs(x) for x in vals if x is not None])
@@ -548,7 +529,7 @@ no entre partidos. Celdas con menos de {MIN_PAREJAS} parejas, vacías.
     def ev_href(self, root, c, p, m):
         return f"{root}evidencia/{slug(c)}/{slug(p)}/{m}.html"
 
-    def tabla_nps_mensual(self, p, root):
+    def tabla_nps(self, p, root):
         cab = "".join(f"<th>{mes_corto(m)}</th>" for m in self.meses)
         filas = []
         for c in CADENAS:
@@ -559,8 +540,72 @@ no entre partidos. Celdas con menos de {MIN_PAREJAS} parejas, vacías.
                 for m in self.meses)
             filas.append(f"<tr><td>{E(c)}{tag_cadena(c)}</td>{celdas}<td><strong>{fmt(self.d.nps(c, p))}</strong></td></tr>")
         return (f'<div class="scroll"><table class="tbl"><thead><tr><th>Cadena</th>{cab}<th>Periodo</th></tr></thead>'
-                f'<tbody>{"".join(filas)}</tbody></table></div>'
-                '<p class="muted">Pulsa una celda para ver la evidencia de ese mes, noticia a noticia.</p>')
+                f'<tbody>{"".join(filas)}</tbody></table></div>')
+
+    def lineas_nps(self, p, root):
+        """Evolución mensual del NPS de un partido: una línea por cadena, puntos enlazados a la evidencia."""
+        d = self.d
+        cadenas = [c for c in CADENAS if any(d.nps(c, p, m) is not None for m in self.meses)]
+        if not cadenas:
+            return '<p class="muted">Ningún mes llega al mínimo de parejas.</p>'
+        vals = [d.nps(c, p, m) for c in cadenas for m in self.meses]
+        mx = max(10, max(abs(v) for v in vals if v is not None))
+        mx = (int(mx / 10) + 1) * 10
+        W, H, T, B, L, R = 1000, 320, 12, 28, 44, 130
+        pw, ph = W - L - R, H - T - B
+        step = pw / max(len(self.meses) - 1, 1)
+        sx = lambda i: L + i * step
+        sy = lambda v: T + (mx - v) / (2 * mx) * ph
+        g = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Evolución mensual del NPS de {E(p)} por cadena">']
+        for t in (-mx, -mx / 2, 0, mx / 2, mx):
+            cls = "axis" if t == 0 else "grid"
+            g.append(f'<line class="{cls}" x1="{L}" x2="{L + pw}" y1="{sy(t):.1f}" y2="{sy(t):.1f}"/>'
+                     f'<text x="{L - 8}" y="{sy(t) + 4:.1f}" text-anchor="end">{t:+.0f}</text>')
+        for i, m in enumerate(self.meses):
+            g.append(f'<text x="{sx(i):.1f}" y="{H - 8}" text-anchor="middle">{mes_corto(m)}</text>')
+        etiquetas = []
+        for c in cadenas:
+            col = COLOR_CADENA[c]
+            dash = " dash" if c in TERTULIAS else ""
+            tramo, tramos = [], []
+            for i, m in enumerate(self.meses):
+                v = d.nps(c, p, m)
+                if v is None:
+                    if tramo:
+                        tramos.append(tramo); tramo = []
+                    continue
+                tramo.append((sx(i), sy(v)))
+            if tramo:
+                tramos.append(tramo)
+            for tr in tramos:
+                pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in tr)
+                g.append(f'<polyline class="ln{dash}" points="{pts}" style="stroke:{col}"/>')
+            ultimo = None
+            for i, m in enumerate(self.meses):
+                v = d.nps(c, p, m)
+                if v is None:
+                    continue
+                ultimo = (i, v)
+                g.append(f'<a href="{self.ev_href(root, c, p, m)}"><title>{E(c)} · {mes_largo(m)}: {plano(fmt(v))} '
+                         f'({d.n(c, p, m)} parejas). Pulsa para ver la evidencia.</title>'
+                         f'<circle cx="{sx(i):.1f}" cy="{sy(v):.1f}" r="12" fill="transparent"/>'
+                         f'<circle class="pt" cx="{sx(i):.1f}" cy="{sy(v):.1f}" r="5" style="fill:{col}"/></a>')
+            if ultimo:
+                etiquetas.append([sy(ultimo[1]), c, col, sx(ultimo[0])])
+        # etiquetas directas al final de cada línea, separadas para que no se pisen
+        etiquetas.sort()
+        for k in range(1, len(etiquetas)):
+            etiquetas[k][0] = max(etiquetas[k][0], etiquetas[k - 1][0] + 15)
+        for y, c, col, x in etiquetas:
+            g.append(f'<text class="lbl" x="{L + pw + 12}" y="{y + 4:.1f}">{E(c)}</text>')
+        g.append("</svg>")
+        leyenda = "".join(
+            f'<span><i style="background:{COLOR_CADENA[c]}"></i>{E(c)}{" (tertulia, discontinua)" if c in TERTULIAS else ""}</span>'
+            for c in cadenas)
+        return (f'<div class="legend">{leyenda}</div>' + "".join(g) +
+                '<p class="muted">Pasa el ratón por un punto para ver la cifra; púlsalo para ver la evidencia de ese mes. '
+                f'Meses sin punto: menos de {MIN_PAREJAS} parejas.</p>'
+                f'<details><summary>Ver en tabla</summary>{self.tabla_nps(p, root)}</details>')
 
     # -- páginas
     def index(self):
@@ -599,7 +644,7 @@ no entre partidos. Celdas con menos de {MIN_PAREJAS} parejas, vacías.
 <h3>{E(p)}: NPS en cada cadena · {self.periodo}</h3>
 <div class="legend"><span><i style="background:var(--pos)"></i>trato positivo neto</span><span><i style="background:var(--neg)"></i>trato negativo neto</span></div>
 {self.diverging(items, f"NPS de {p} por cadena", self.escala_partido(p))}
-<details><summary>Ver mes a mes</summary>{self.tabla_nps_mensual(p, "")}</details>
+<h3>Evolución mes a mes</h3>{self.lineas_nps(p, "")}
 <p><a href="partidos/{slug(p)}/index.html">Página completa de {E(p)} →</a></p></div>""")
 
         body = f"""
@@ -657,12 +702,6 @@ cada uno tiene su propia agenda (gobernar, estar en la oposición, tener casos a
             items = [(c, d.nps(c, p), d.n(c, p)) for c in CADENAS if d.n(c, p)]
             cuotas = [(c, d.cuota(c, p)) for c in [NACIONAL] + CADENAS if d.expo.get((c, "*", "total"))]
             max_cuota = max([5] + [v for _, v in cuotas if v is not None])
-            bloques = []
-            for c in CADENAS:
-                if not d.n(c, p):
-                    continue
-                bloques.append(f"""<div class="card"><h3>{E(c)}{tag_cadena(c)} · {fmt(d.nps(c, p))}
-<span class="muted">({miles(d.n(c, p))} parejas valoradas)</span></h3>{self.serie_mensual(c, p, mx)}</div>""")
             frases = [f"{c}: NPS {plano(fmt(v))} ({n} parejas)" for c, v, n in items if v is not None]
             frase = (f"Cómo trata cada cadena a {p} ({self.periodo}). " + "; ".join(frases) + "."
                      if frases else f"Ninguna cadena llega al mínimo de parejas para {p}.")
@@ -673,9 +712,8 @@ cada uno tiene su propia agenda (gobernar, estar en la oposición, tener casos a
 <p class="muted">Su parte del tiempo de mención de partidos en cada cadena.</p>
 <div class="card">{self.barras_h(cuotas, f"Cuota de mención de {p}", maximo=max_cuota * 1.1)}</div>
 <h2>Cómo lo trata cada cadena</h2>
-<div class="card">{self.diverging(items, f"NPS de {p} por cadena", mx)}{self.tabla_nps_mensual(p, root)}</div>
-<h2>Mes a mes</h2><p class="muted">Misma escala en todas las cadenas para poder compararlas.</p>
-{"".join(bloques)}""")
+<div class="card"><h3>Periodo completo</h3>{self.diverging(items, f"NPS de {p} por cadena", mx)}</div>
+<div class="card"><h3>Evolución mes a mes</h3>{self.lineas_nps(p, root)}</div>""")
 
     def evidencia(self):
         d = self.d
